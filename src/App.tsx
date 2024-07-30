@@ -73,12 +73,14 @@ export default function App() {
         {value > 0 ? "✅ 在线" : "❌ 未连接"}
         <span className={`ml-4 ${color}`}>{value}ms</span>
       </p>
-      <button
-        onClick={stopAudio}
-        className="border-4 border-current px-2 py-3 rounded-xl"
-      >
-        ⏹停止音乐
-      </button>
+      {offline && (
+        <button
+          onClick={stopAudio}
+          className="border-4 border-current px-2 py-3 rounded-xl hover:bg-green-500"
+        >
+          ⏹停止声音
+        </button>
+      )}
     </div>
   );
 }

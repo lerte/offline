@@ -6,8 +6,8 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "offline",
-    "version": "0.0.0"
+    "productName": "Offline",
+    "version": "../package.json"
   },
   "tauri": {
     "allowlist": {
