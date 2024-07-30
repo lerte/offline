@@ -1,50 +1,84 @@
 import "./App.css";
 
-import { http, invoke } from "@tauri-apps/api";
+import { invoke, shell } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
 
-import { ResponseType } from "@tauri-apps/api/http";
 import { useInterval } from "usehooks-ts";
 
-const DELAY = 5000;
-
 export default function App() {
-  const [isOnline, setIsOnline] = useState(true);
+  const [value, setValue] = useState(0);
+  const [offline, setOffline] = useState(false);
 
   const playAudio = async () => {
     await invoke("handle_event", { action: "play" });
   };
+
   const stopAudio = async () => {
+    setOffline(false);
     await invoke("handle_event", { action: "stop" });
   };
 
+  const ping = async () => {
+    const command = new shell.Command("ping", ["www.baidu.com", "-t"], {
+      encoding: "utf8",
+    });
+
+    command.stdout.on("data", (line) => {
+      const matched = line.match(/=(\d+)ms/);
+      if (matched) {
+        setValue(matched[1]);
+      } else {
+        setValue(0);
+      }
+    });
+    await command.spawn();
+  };
+
   useEffect(() => {
-    if (isOnline) {
-      stopAudio();
-    } else {
+    ping();
+  }, []);
+
+  useEffect(() => {
+    const throttleTimer = setTimeout(() => {
+      if (value == 0) {
+        setOffline(true);
+      }
+    }, 1000);
+
+    return () => {
+      clearTimeout(throttleTimer);
+    };
+  }, [value]);
+
+  useInterval(() => {
+    if (offline) {
       playAudio();
     }
-  }, [isOnline]);
+  }, 1000);
 
-  useInterval(async () => {
-    try {
-      const response = await http.fetch(
-        `https://captive.apple.com/hotspot-detect.html?${Date.now()}`,
-        {
-          method: "GET",
-          timeout: 2000,
-          responseType: ResponseType.Text,
-        }
-      );
-      setIsOnline(response.ok);
-    } catch {
-      setIsOnline(false);
-    }
-  }, DELAY);
+  let color = "text-white";
+  if (value > 0 && value < 50) {
+    color = "text-green-500";
+  } else if (value > 50 && value < 100) {
+    color = "text-amber-500";
+  } else if (value >= 100 && value < 200) {
+    color = "text-red-500";
+  } else {
+    color = "text-slate-500";
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white text-4xl gap-4 flex flex-col items-center justify-center">
-      <p>{isOnline ? "✅ 在线" : "❌ 未连接"}</p>
+      <p>
+        {value > 0 ? "✅ 在线" : "❌ 未连接"}
+        <span className={`ml-4 ${color}`}>{value}ms</span>
+      </p>
+      <button
+        onClick={stopAudio}
+        className="border-4 border-current px-2 py-3 rounded-xl"
+      >
+        ⏹停止音乐
+      </button>
     </div>
   );
 }
